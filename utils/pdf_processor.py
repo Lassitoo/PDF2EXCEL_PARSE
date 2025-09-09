@@ -6,36 +6,22 @@ from typing import Optional
 def extract_text_from_pdf(pdf_file) -> Optional[str]:
     """
     Extrait le texte d'un fichier PDF uploadé via Streamlit.
-
-    Args:
-        pdf_file: Fichier PDF uploadé via st.file_uploader
-
-    Returns:
-        str: Texte extrait du PDF ou None si erreur
     """
     try:
-        # Lire le fichier PDF
         pdf_reader = PyPDF2.PdfReader(pdf_file)
-
-        # Extraire le texte de toutes les pages
         text = ""
         total_pages = len(pdf_reader.pages)
 
-        # Créer une barre de progression pour l'extraction
         progress_bar = st.progress(0)
         status_text = st.empty()
 
         for page_num, page in enumerate(pdf_reader.pages):
-            # Mettre à jour la progression
             progress = (page_num + 1) / total_pages
             progress_bar.progress(progress)
             status_text.text(f"Extraction de la page {page_num + 1}/{total_pages}")
-
-            # Extraire le texte de la page
             page_text = page.extract_text()
             text += page_text + "\n"
 
-        # Nettoyer la barre de progression
         progress_bar.empty()
         status_text.empty()
 
@@ -64,7 +50,6 @@ def chunk_text(text: str, max_chunk_size: int = 4000) -> list:
 
     for word in words:
         word_size = len(word) + 1
-
         if current_size + word_size > max_chunk_size and current_chunk:
             chunks.append(" ".join(current_chunk))
             current_chunk = [word]

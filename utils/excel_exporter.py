@@ -8,38 +8,25 @@ import json
 def create_excel_from_data(extracted_data: List[Dict]) -> BytesIO:
     """
     Crée un fichier Excel à partir des données extraites.
-
-    Args:
-        extracted_data: Liste de dictionnaires contenant les données extraites
-
-    Returns:
-        BytesIO: Fichier Excel en mémoire
     """
     try:
-        # Créer un DataFrame à partir des données
         df = pd.DataFrame(extracted_data)
-
-        # Créer un buffer en mémoire
         excel_buffer = BytesIO()
 
-        # Créer le fichier Excel
         with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
             df.to_excel(writer, sheet_name='Extracted_Data', index=False)
-
-            # Ajuster la largeur des colonnes
             worksheet = writer.sheets['Extracted_Data']
+
             for column in worksheet.columns:
                 max_length = 0
                 column_letter = column[0].column_letter
-
                 for cell in column:
                     try:
                         if len(str(cell.value)) > max_length:
                             max_length = len(str(cell.value))
                     except:
                         pass
-
-                adjusted_width = min(max_length + 2, 50)  # Maximum 50 caractères
+                adjusted_width = min(max_length + 2, 50)
                 worksheet.column_dimensions[column_letter].width = adjusted_width
 
         excel_buffer.seek(0)
@@ -52,19 +39,16 @@ def create_excel_from_data(extracted_data: List[Dict]) -> BytesIO:
 
 def validate_and_clean_data(raw_data: str) -> List[Dict]:
     """
-    Valide et nettoie les données JSON reçues de Groq.
+    Valide et nettoie les données JSON reçues du modèle local.
     """
     try:
-        # Supprimer balises Markdown éventuelles
         if raw_data.startswith("```json"):
             raw_data = raw_data.replace("```json", "").replace("```", "").strip()
 
-        # Corriger échappements invalides (\n, \t, \u etc.)
+        # Corriger échappements invalides
         raw_data = raw_data.replace("\\n", " ").replace("\\t", " ").replace("\\r", " ")
 
-        # Parser le JSON de manière robuste
         parsed_data = json.loads(raw_data)
-
         if isinstance(parsed_data, dict):
             parsed_data = [parsed_data]
 
@@ -92,24 +76,17 @@ def validate_and_clean_data(raw_data: str) -> List[Dict]:
         return []
 
 
-
 def display_preview(data: List[Dict]):
     """
     Affiche un aperçu des données extraites dans Streamlit.
-
-    Args:
-        data: Données à afficher
     """
     if not data:
         st.warning("Aucune donnée à afficher.")
         return
 
     st.subheader("📊 Aperçu des données extraites")
-
-    # Créer un DataFrame pour l'affichage
     df = pd.DataFrame(data)
 
-    # Afficher les statistiques
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Nombre d'entreprises", len(data))
@@ -122,5 +99,4 @@ def display_preview(data: List[Dict]):
         unique_countries = len(set(entry.get("Country", "N/A") for entry in data if entry.get("Country") != "N/A"))
         st.metric("Pays uniques", unique_countries)
 
-    # Afficher le tableau
     st.dataframe(df, use_container_width=True)

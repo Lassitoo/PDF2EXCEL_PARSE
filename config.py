@@ -4,9 +4,8 @@ from dotenv import load_dotenv
 # Charger les variables d'environnement
 load_dotenv()
 
-# Configuration Groq
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-MODEL_NAME = "llama-3.3-70b-versatile"  # ou "llama3-8b-8192" pour une version plus rapide
+# Nom du modèle local Ollama
+MODEL_NAME = "llama3.1:8b-instruct-q4_K_M"
 
 # Configuration des colonnes Excel
 EXCEL_COLUMNS = [
