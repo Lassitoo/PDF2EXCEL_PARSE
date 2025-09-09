@@ -50,16 +50,9 @@ def extract_text_from_pdf(pdf_file) -> Optional[str]:
         return None
 
 
-def chunk_text(text: str, max_chunk_size: int = 8000) -> list:
+def chunk_text(text: str, max_chunk_size: int = 4000) -> list:
     """
-    Divise le texte en chunks plus petits pour éviter les limites de l'API.
-
-    Args:
-        text: Texte à diviser
-        max_chunk_size: Taille maximum de chaque chunk
-
-    Returns:
-        list: Liste des chunks de texte
+    Divise le texte en chunks plus petits pour éviter les pertes d'information.
     """
     if len(text) <= max_chunk_size:
         return [text]
@@ -70,19 +63,17 @@ def chunk_text(text: str, max_chunk_size: int = 8000) -> list:
     current_size = 0
 
     for word in words:
-        word_size = len(word) + 1  # +1 pour l'espace
+        word_size = len(word) + 1
 
         if current_size + word_size > max_chunk_size and current_chunk:
-            # Ajouter le chunk actuel à la liste
-            chunks.append(' '.join(current_chunk))
+            chunks.append(" ".join(current_chunk))
             current_chunk = [word]
             current_size = word_size
         else:
             current_chunk.append(word)
             current_size += word_size
 
-    # Ajouter le dernier chunk s'il n'est pas vide
     if current_chunk:
-        chunks.append(' '.join(current_chunk))
+        chunks.append(" ".join(current_chunk))
 
     return chunks

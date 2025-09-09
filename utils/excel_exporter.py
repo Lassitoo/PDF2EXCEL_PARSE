@@ -53,50 +53,44 @@ def create_excel_from_data(extracted_data: List[Dict]) -> BytesIO:
 def validate_and_clean_data(raw_data: str) -> List[Dict]:
     """
     Valide et nettoie les données JSON reçues de Groq.
-
-    Args:
-        raw_data: Données JSON brutes de Groq
-
-    Returns:
-        List[Dict]: Données nettoyées et validées
     """
     try:
-        # Essayer de parser le JSON
-        if raw_data.startswith('```json'):
-            raw_data = raw_data.replace('```json', '').replace('```', '').strip()
+        # Supprimer balises Markdown éventuelles
+        if raw_data.startswith("```json"):
+            raw_data = raw_data.replace("```json", "").replace("```", "").strip()
 
-        # Parser le JSON
+        # Corriger échappements invalides (\n, \t, \u etc.)
+        raw_data = raw_data.replace("\\n", " ").replace("\\t", " ").replace("\\r", " ")
+
+        # Parser le JSON de manière robuste
         parsed_data = json.loads(raw_data)
 
-        # Si c'est un seul objet, le convertir en liste
         if isinstance(parsed_data, dict):
             parsed_data = [parsed_data]
 
-        # Valider et nettoyer chaque entrée
-        cleaned_data = []
         required_fields = ["Company", "Product Group", "Country", "Address", "Phone", "Email", "Website", "Brands"]
+        cleaned_data = []
 
         for entry in parsed_data:
             cleaned_entry = {}
             for field in required_fields:
                 value = entry.get(field, "N/A")
-                # Nettoyer la valeur
-                if value is None or value == "" or str(value).lower() in ["null", "none", ""]:
+                if not value or str(value).lower() in ["null", "none", ""]:
                     cleaned_entry[field] = "N/A"
                 else:
                     cleaned_entry[field] = str(value).strip()
-
             cleaned_data.append(cleaned_entry)
 
         return cleaned_data
 
     except json.JSONDecodeError as e:
         st.error(f"Erreur de parsing JSON : {str(e)}")
-        st.error(f"Données reçues : {raw_data[:500]}...")
+        st.error(f"⚠️ Données reçues (extrait) : {raw_data[:500]}...")
         return []
     except Exception as e:
         st.error(f"Erreur lors du nettoyage des données : {str(e)}")
         return []
+
 
 
 def display_preview(data: List[Dict]):

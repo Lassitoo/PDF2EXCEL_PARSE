@@ -20,36 +20,56 @@ EXCEL_COLUMNS = [
     "Brands"
 ]
 
-# Prompt système pour Groq
+# Prompt système amélioré
 EXTRACTION_PROMPT = """
-Vous êtes un expert en extraction d'informations d'entreprise. Analysez le texte PDF fourni et extrayez UNIQUEMENT les informations suivantes :
+You are an expert in extracting company information from documents. 
+The provided PDF text contains information in both **English** and **Turkish**.
+⚠️ IMPORTANT: Only extract information written in **English**. Ignore Turkish text.
 
-1. Company : Le nom de l'entreprise/société
-2. Product Group : Le groupe de produits ou secteur d'activité
-3. Country : Le pays où se trouve l'entreprise
-4. Address : L'adresse complète de l'entreprise
-5. Phone : Le numéro de téléphone
-6. Email : L'adresse email
-7. Website : Le site web de l'entreprise
-8. Brands : Les marques associées à l'entreprise
+Your task is to extract ALL companies mentioned in the text and return them in a **strict JSON format**. 
+Do not add any explanation or text outside of the JSON. 
+The JSON must be valid and parsable.
 
-INSTRUCTIONS IMPORTANTES :
-- Si une information n'est pas trouvée, répondez "N/A"
-- Répondez UNIQUEMENT au format JSON suivant :
-{
-  "Company": "nom_entreprise",
-  "Product Group": "groupe_produit",
-  "Country": "pays",
-  "Address": "adresse_complete",
-  "Phone": "numero_telephone",
-  "Email": "email",
-  "Website": "site_web",
-  "Brands": "marques_separees_par_virgules"
-}
+Fields to extract:
+1. Company : The company name
+2. Product Group : The product group or business sector
+3. Country : The country where the company is located
+4. Address : The full company address
+5. Phone : The phone number
+6. Email : The email address
+7. Website : The company website
+8. Brands : The brands associated with the company
 
-- Ne fournissez AUCUNE explication supplémentaire
-- Le JSON doit être valide et parsable
-- Si plusieurs entreprises sont trouvées, créez un array JSON avec plusieurs objets
+Rules:
+- If a field is missing, use "N/A"
+- Return the result as a JSON **array** of objects, even if there is only one company
+- Escape special characters properly (no invalid backslashes)
+- Do not include any commentary, explanations, or markdown formatting
+- Always include ALL companies found in the text
 
-Texte à analyser :
+Example output:
+[
+  {
+    "Company": "ABC Pharma Ltd",
+    "Product Group": "Pharmaceuticals",
+    "Country": "United Kingdom",
+    "Address": "123 Oxford Street, London, UK",
+    "Phone": "+44 20 1234 5678",
+    "Email": "info@abcpharma.com",
+    "Website": "www.abcpharma.com",
+    "Brands": "BrandA, BrandB"
+  },
+  {
+    "Company": "XYZ Medical",
+    "Product Group": "Medical Devices",
+    "Country": "Germany",
+    "Address": "Hauptstrasse 45, Berlin, Germany",
+    "Phone": "+49 30 9876 5432",
+    "Email": "contact@xyzmedical.de",
+    "Website": "www.xyzmedical.de",
+    "Brands": "N/A"
+  }
+]
+
+Now extract all companies in the following text:
 """
