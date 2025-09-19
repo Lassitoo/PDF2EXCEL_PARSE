@@ -1,11 +1,10 @@
 import streamlit as st
 from datetime import datetime
-from io import BytesIO
 
 # Imports locaux
-from config import MODEL_NAME, EXTRACTION_PROMPT, EXCEL_COLUMNS
+from config import EXCEL_COLUMNS
 from utils.pdf_processor import extract_text_from_pdf, chunk_text
-from utils.excel_exporter import create_excel_from_data, validate_and_clean_data, display_preview
+from utils.excel_exporter import create_excel_from_data, display_preview
 from utils.ollama_utils import extract_with_ollama
 
 # Configuration de la page
@@ -16,10 +15,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+
 def main():
     """Fonction principale de l'application."""
     st.title("📄➡️📊 PDF to Excel Extractor")
     st.markdown("### Extrayez automatiquement les informations d'entreprise depuis vos PDF")
+
+    # Initialiser la mémoire pour stocker les résultats cumulés
+    if "all_data" not in st.session_state:
+        st.session_state.all_data = []
 
     # Sidebar pour la configuration
     st.sidebar.title("⚙️ Configuration")
@@ -76,35 +80,43 @@ def main():
                         text_chunks = chunk_text(pdf_text)
                         st.info(f"📄 Texte divisé en {len(text_chunks)} partie(s)")
 
-                        # 3. Traiter avec Ollama local
+                        # 3. Traiter chunk par chunk avec Ollama
                         st.info("🤖 Traitement avec Ollama local...")
-                        extracted_data = extract_with_ollama(text_chunks)
 
-                        if extracted_data:
-                            st.success(f"✅ {len(extracted_data)} entreprise(s) trouvée(s) !")
+                        for i, chunk in enumerate(text_chunks):
+                            st.write(f"🔎 Traitement du chunk {i+1}/{len(text_chunks)}...")
+                            chunk_data = extract_with_ollama([chunk])
 
-                            # 4. Aperçu des données
-                            display_preview(extracted_data)
+                            if chunk_data:
+                                st.success(f"✅ {len(chunk_data)} entreprise(s) trouvée(s) dans ce chunk")
 
-                            # 5. Créer le fichier Excel
-                            st.info("📊 Création du fichier Excel...")
-                            excel_buffer = create_excel_from_data(extracted_data)
+                                # Ajouter au cumul global
+                                st.session_state.all_data.extend(chunk_data)
 
-                            if excel_buffer:
-                                st.success("✅ Fichier Excel créé avec succès !")
+                                # Aperçu du chunk courant
+                                with st.expander(f"👀 Aperçu des données extraites (chunk {i+1})"):
+                                    display_preview(chunk_data)
 
-                                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                                filename = f"extracted_data_{timestamp}.xlsx"
+                                # ✅ Nouveau : Télécharger les données cumulées après ce chunk
+                                excel_buffer = create_excel_from_data(st.session_state.all_data)
+                                if excel_buffer:
+                                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                                    filename = f"extracted_data_{timestamp}.xlsx"
+                                    st.download_button(
+                                        label=f"💾 Télécharger les données cumulées après chunk {i+1}",
+                                        data=excel_buffer.getvalue(),
+                                        file_name=filename,
+                                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                        use_container_width=True
+                                    )
+                            else:
+                                st.warning(f"⚠️ Aucune donnée trouvée dans le chunk {i+1}")
 
-                                st.download_button(
-                                    label="💾 Télécharger le fichier Excel",
-                                    data=excel_buffer.getvalue(),
-                                    file_name=filename,
-                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                    use_container_width=True
-                                )
-                        else:
-                            st.warning("⚠️ Aucune donnée n'a pu être extraite.")
+                        # ✅ Affichage global après tous les chunks
+                        if st.session_state.all_data:
+                            st.subheader("📊 Résumé global des données extraites")
+                            display_preview(st.session_state.all_data)
+
                     else:
                         st.error("❌ Impossible d'extraire le texte du PDF.")
         else:
@@ -127,16 +139,16 @@ def main():
         **2️⃣ Upload & Extraction**
         - Uploadez votre PDF
         - Cliquez sur "Extraire"
-        - Attendez le traitement
+        - Les données sont extraites chunk par chunk
         """)
 
     with col3:
         st.markdown("""
         **3️⃣ Téléchargement**
-        - Vérifiez l'aperçu
-        - Téléchargez le Excel
-        - Utilisez vos données !
+        - Après chaque chunk traité, vous pouvez télécharger les données cumulées
+        - À la fin, un résumé global est affiché
         """)
+
 
 if __name__ == "__main__":
     main()
